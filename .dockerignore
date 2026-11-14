@@ -13,8 +13,8 @@ README.md
 .specstory
 Dockerfile
 .dockerignore
+docker-compose.yml
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .DS_Store
-
