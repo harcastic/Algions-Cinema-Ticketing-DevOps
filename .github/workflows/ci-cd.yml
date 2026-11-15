@@ -57,54 +57,52 @@ jobs:
           docker push ${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker push ${{ env.IMAGE_NAME }}:latest
 
-  # deploy:
-  #   needs: build
-  #   runs-on: ubuntu-latest
-  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-  #   steps:
-  #     - name: Deploy to Azure VM
-  #       uses: appleboy/ssh-action@v1.2.0
-  #       env:
-  #         IMAGE_TAG: ${{ github.sha }}
-  #         DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-  #         DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-  #         MONGODB_URI: ${{ secrets.MONGODB_URI }}
-  #         JWT_SECRET: ${{ secrets.JWT_SECRET }}
-  #       with:
-  #         host: ${{ secrets.AZURE_VM_HOST }}
-  #         username: ${{ secrets.AZURE_VM_USERNAME }}
-  #         key: ${{ secrets.AZURE_VM_SSH_KEY }}
-  #         envs: IMAGE_TAG,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN,MONGODB_URI,JWT_SECRET
-  #         script: |
-  #           echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-
-  #           docker pull "$DOCKERHUB_USERNAME/cinema-ticketing-api:$IMAGE_TAG"
-
-  #           docker stop cinema-api || true
-  #           docker rm cinema-api || true
-
-  #           docker run -d \
-  #             --name cinema-api \
-  #             --restart unless-stopped \
-  #             -p 127.0.0.1:5000:5000 \
-  #             -e MONGODB_URI="$MONGODB_URI" \
-  #             -e JWT_SECRET="$JWT_SECRET" \
-  #             "$DOCKERHUB_USERNAME/cinema-ticketing-api:$IMAGE_TAG"
-
-  #           docker logout
-
-
-  ssh-test:
+  deploy:
+    needs: build
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
-      - name: Test Azure SSH connection
-        uses: appleboy/ssh-action@v1.2.0
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy Docker Compose file to Azure VM
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.AZURE_VM_HOST }}
           username: ${{ secrets.AZURE_VM_USERNAME }}
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          source: "docker-compose.yml"
+          target: "/home/${{ secrets.AZURE_VM_USERNAME }}/cinema-deploy"
+
+      - name: Deploy using Docker Compose
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        with:
+          host: ${{ secrets.AZURE_VM_HOST }}
+          username: ${{ secrets.AZURE_VM_USERNAME }}
+          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          envs: IMAGE_TAG,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN,MONGODB_URI,JWT_SECRET
           script: |
-            echo "Successfully connected to Azure VM!"
-            docker --version
+            set -e
+
+            cd ~/cinema-deploy
+
+            echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+            # Removes old containers if they exist
+            docker rm -f cinema-api cinema-ticketing-api || true
+
+            # Pulls and runs the new image
+            docker-compose pull
+            docker-compose up -d
+
+            # Checks deployment
+            docker-compose ps
+
+            docker logout
