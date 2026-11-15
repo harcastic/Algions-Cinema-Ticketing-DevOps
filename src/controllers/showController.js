@@ -18,35 +18,7 @@ const getShowById = async (req, res, next) => {
   }
 };
 
-const createShow = async (req, res, next) => {
-  try {
-    const show = await showService.createShow(req.body);
-    res.status(201).json({
-      message: 'Show created successfully',
-      show
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-const createSeats = async (req, res, next) => {
-  try {
-    const seats = await showService.createSeatsForShow(req.params.showId, req.body);
-    res.status(201).json({
-      message: `Successfully created ${seats.length} seats for show`,
-      count: seats.length,
-      seats
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
 module.exports = {
   getAllShows,
-  getShowById,
-  createShow,
-  createSeats
+  getShowById
 };
-

@@ -2,10 +2,7 @@ const crypto = require('crypto');
 const Seat = require('../models/Seat');
 const Show = require('../models/Show');
 
-/**
- * Retrieves all seats for a given show.
- * If a seat is marked HELD but its hold has expired, its status is presented as AVAILABLE.
- */
+
 const getSeatsByShowId = async (showId) => {
   const show = await Show.findById(showId);
   if (!show) {
@@ -30,11 +27,6 @@ const getSeatsByShowId = async (showId) => {
   });
 };
 
-/**
- * Places a temporary hold on a seat.
- * Uses atomic MongoDB conditional update.
- * If another valid hold exists or the seat is booked, returns 409 Conflict.
- */
 const holdSeat = async (seatId, userId) => {
   const holdDurationMinutes = parseFloat(process.env.HOLD_DURATION_MINUTES) || 3;
   const holdDurationMs = holdDurationMinutes * 60 * 1000;

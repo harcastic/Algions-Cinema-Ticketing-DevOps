@@ -1,5 +1,6 @@
 const request = require('supertest');
 const app = require('../src/app');
+const Show = require('../src/models/Show');
 const Seat = require('../src/models/Seat');
 const { startTestDB, stopTestDB, clearTestDB, createTestUser } = require('./setup');
 
@@ -26,29 +27,22 @@ describe('Seats and Health API Tests', () => {
     const otherUser = await createTestUser('User Two', 'user2@example.com');
     otherAuthHeader = otherUser.authHeader;
 
-    // Create a show
-    const showRes = await request(app)
-      .post('/api/shows')
-      .set('Authorization', authHeader)
-      .send({
-        movieName: 'The Dark Knight',
-        screenName: 'Screen 1',
-        startsAt: new Date(Date.now() + 3600000).toISOString(),
-        endsAt: new Date(Date.now() + 7200000).toISOString()
-      });
-    showId = showRes.body.show._id;
+    // Create a show directly via Mongoose model
+    const show = await Show.create({
+      movieName: 'The Dark Knight',
+      screenName: 'Screen 1',
+      startsAt: new Date(Date.now() + 3600000),
+      endsAt: new Date(Date.now() + 7200000),
+      status: 'SCHEDULED'
+    });
+    showId = show._id.toString();
 
-    // Create seats
-    const seatsRes = await request(app)
-      .post(`/api/shows/${showId}/seats`)
-      .set('Authorization', authHeader)
-      .send({
-        seats: [
-          { row: 'A', seatNumber: 1 },
-          { row: 'A', seatNumber: 2 }
-        ]
-      });
-    seatId = seatsRes.body.seats[0]._id;
+    // Create seats directly via Mongoose model
+    const seats = await Seat.insertMany([
+      { showId: show._id, row: 'A', seatNumber: 1, status: 'AVAILABLE' },
+      { showId: show._id, row: 'A', seatNumber: 2, status: 'AVAILABLE' }
+    ]);
+    seatId = seats[0]._id.toString();
   });
 
   describe('GET /health and GET /ready', () => {
@@ -147,4 +141,3 @@ describe('Seats and Health API Tests', () => {
     });
   });
 });
-

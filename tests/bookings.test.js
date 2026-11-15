@@ -1,5 +1,6 @@
 const request = require('supertest');
 const app = require('../src/app');
+const Show = require('../src/models/Show');
 const Seat = require('../src/models/Seat');
 const Booking = require('../src/models/Booking');
 const { startTestDB, stopTestDB, clearTestDB, createTestUser } = require('./setup');
@@ -24,26 +25,24 @@ describe('Bookings and Concurrency API Tests', () => {
     user1 = await createTestUser('User One', 'user1@example.com');
     user2 = await createTestUser('User Two', 'user2@example.com');
 
-    // Create a show
-    const showRes = await request(app)
-      .post('/api/shows')
-      .set('Authorization', user1.authHeader)
-      .send({
-        movieName: 'Pulp Fiction',
-        screenName: 'Auditorium 1',
-        startsAt: new Date(Date.now() + 3600000).toISOString(),
-        endsAt: new Date(Date.now() + 7200000).toISOString()
-      });
-    showId = showRes.body.show._id;
+    // Create a show directly via Mongoose model
+    const show = await Show.create({
+      movieName: 'Pulp Fiction',
+      screenName: 'Auditorium 1',
+      startsAt: new Date(Date.now() + 3600000),
+      endsAt: new Date(Date.now() + 7200000),
+      status: 'SCHEDULED'
+    });
+    showId = show._id.toString();
 
-    // Create seat
-    const seatRes = await request(app)
-      .post(`/api/shows/${showId}/seats`)
-      .set('Authorization', user1.authHeader)
-      .send({
-        seats: [{ row: 'A', seatNumber: 1 }]
-      });
-    seatId = seatRes.body.seats[0]._id;
+    // Create seat directly via Mongoose model
+    const seat = await Seat.create({
+      showId: show._id,
+      row: 'A',
+      seatNumber: 1,
+      status: 'AVAILABLE'
+    });
+    seatId = seat._id.toString();
   });
 
   describe('POST /api/seats/:seatId/confirm', () => {

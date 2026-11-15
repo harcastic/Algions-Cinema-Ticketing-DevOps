@@ -44,12 +44,12 @@ cinema-ticketing-api/
 │   │   └── Booking.js            # Booking schema with partial unique index on seatId (CONFIRMED)
 │   ├── controllers/
 │   │   ├── authController.js     # User registration and login handlers
-│   │   ├── showController.js     # Show listing, show creation, seat batch creation
+│   │   ├── showController.js     # Show listing and show retrieval
 │   │   ├── seatController.js     # Seat map retrieval and atomic hold handler
 │   │   └── bookingController.js  # Booking confirmation, cancellation, and retrieval
 │   ├── services/
 │   │   ├── authService.js        # Authentication & JWT generation logic
-│   │   ├── showService.js        # Show and seat layout business logic
+│   │   ├── showService.js        # Show retrieval business logic
 │   │   ├── seatService.js        # Atomic conditional seat hold logic
 │   │   └── bookingService.js     # Multi-document transactional booking and cancellation
 │   ├── routes/
@@ -293,59 +293,6 @@ Retrieves all scheduled shows.
 
 #### `GET /api/shows/:showId` *(Public)*
 Retrieves details of a specific show.
-
-#### `POST /api/shows` *(Protected: Bearer Token)*
-Creates a new show. Validates that `endsAt` is strictly after `startsAt`.
-- **Request Body:**
-```json
-{
-  "movieName": "Interstellar",
-  "screenName": "Screen 2 - Dolby",
-  "startsAt": "2026-11-12T18:00:00.000Z",
-  "endsAt": "2026-11-12T21:00:00.000Z",
-  "status": "SCHEDULED"
-}
-```
-- **Response (201 Created):**
-```json
-{
-  "message": "Show created successfully",
-  "show": {
-    "_id": "67335d1f85b3ec0a4b7a5566",
-    "movieName": "Interstellar",
-    "screenName": "Screen 2 - Dolby",
-    "startsAt": "2026-11-12T18:00:00.000Z",
-    "endsAt": "2026-11-12T21:00:00.000Z",
-    "status": "SCHEDULED"
-  }
-}
-```
-
-#### `POST /api/shows/:showId/seats` *(Protected: Bearer Token)*
-Generates seat layout for a show. Supports grid generation (`rows` + `seatsPerRow`) or explicit seat array.
-- **Request Body:**
-```json
-{
-  "rows": ["A", "B", "C"],
-  "seatsPerRow": 6
-}
-```
-- **Response (201 Created):**
-```json
-{
-  "message": "Successfully created 18 seats for show",
-  "count": 18,
-  "seats": [
-    {
-      "_id": "67335d1f85b3ec0a4b7a7788",
-      "showId": "67335d1f85b3ec0a4b7a5566",
-      "row": "A",
-      "seatNumber": 1,
-      "status": "AVAILABLE"
-    }
-  ]
-}
-```
 
 ---
 

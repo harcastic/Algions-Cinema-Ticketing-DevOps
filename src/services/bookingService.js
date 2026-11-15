@@ -3,11 +3,7 @@ const Booking = require('../models/Booking');
 const Seat = require('../models/Seat');
 const generateTicketId = require('../utils/generateTicketId');
 
-/**
- * Confirms a held seat and creates a booking.
- * Uses a MongoDB transaction to ensure both booking creation and seat status
- * update succeed or fail atomically.
- */
+
 const confirmBooking = async (seatId, holdToken, userId) => {
   if (!holdToken) {
     const error = new Error('holdToken is required');
@@ -91,10 +87,6 @@ const confirmBooking = async (seatId, holdToken, userId) => {
   }
 };
 
-/**
- * Cancels an existing booking and releases the seat back to AVAILABLE.
- * Uses a MongoDB transaction to update booking status and seat availability atomically.
- */
 const cancelBooking = async (bookingId, userId) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -148,10 +140,6 @@ const cancelBooking = async (bookingId, userId) => {
   }
 };
 
-/**
- * Retrieves a booking by its ID.
- * Only the owner can view their booking.
- */
 const getBookingById = async (bookingId, userId) => {
   const booking = await Booking.findById(bookingId)
     .populate('showId', 'movieName screenName startsAt endsAt status')
